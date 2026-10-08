@@ -175,6 +175,8 @@ class Ship {
     this.shootCooldown = 0;
     this.speedTimer    = 0;
     this.tripleShotTimer = 0;
+    this.shieldActive  = false;
+    this.shieldEnergy  = 0;
     this.dead          = false;
   }
 
@@ -184,6 +186,14 @@ class Ship {
     if (this.shootCooldown > 0) this.shootCooldown -= dt;
     if (this.speedTimer    > 0) this.speedTimer    -= dt;
     if (this.tripleShotTimer > 0) this.tripleShotTimer -= dt;
+
+    if (this.shieldActive) {
+      this.shieldEnergy -= dt * 10;
+      if (this.shieldEnergy <= 0) {
+        this.shieldActive = false;
+        this.shieldEnergy = 0;
+      }
+    }
 
     const ROT   = 3.5;   // rad/s
     const BASE_THRUST = 260;  // px/s²
@@ -244,6 +254,15 @@ class Ship {
       ctx.stroke();
     }
 
+    // Escudo
+    if (this.shieldActive) {
+      ctx.beginPath();
+      ctx.arc(0, 0, this.radius + 6, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(0, 100, 255, ${0.3 + 0.2 * (this.shieldEnergy / 100)})`;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
     // Dibujar silueta según skin
     skin.draw(ctx);
 
@@ -298,7 +317,7 @@ class PowerUp {
   constructor(x, y, type = 'speed') {
     this.x = x;
     this.y = y;
-    this.type = type;
+    this.type = type; // 'speed', 'triple', 'shield'
     this.radius = 12;
     this.ttl = 10;
     this.dead = false;
@@ -313,10 +332,14 @@ class PowerUp {
     if (this.dead) return;
     if (this.ttl < 3 && Math.floor(this.ttl * 6) % 2 === 0) return;
 
+    let color = '#00ffff';
+    if (this.type === 'shield') color = '#38bdf8';
+    if (this.type === 'triple') color = '#ff00ff';
+
     ctx.save();
     ctx.translate(this.x, this.y);
-    ctx.strokeStyle = '#00ffff';
-    ctx.fillStyle = '#00ffff';
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
     ctx.lineWidth = 1.5;
 
     ctx.beginPath();
@@ -326,7 +349,11 @@ class PowerUp {
     ctx.font = 'bold 11px monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(this.type === 'speed' ? 'S' : 'T', 0, 1);
+    
+    let label = 'S';
+    if (this.type === 'shield') label = 'E';
+    if (this.type === 'triple') label = 'T';
+    ctx.fillText(label, 0, 1);
 
     ctx.restore();
   }
@@ -432,7 +459,8 @@ function update(dt) {
         explode(a.x, a.y, a.size * 5);
         newAsteroids.push(...a.split());
         if (Math.random() < 0.20) {
-          const type = Math.random() < 0.5 ? 'speed' : 'triple';
+          const randType = Math.random();
+          const type = randType < 0.33 ? 'speed' : (randType < 0.66 ? 'triple' : 'shield');
           powerUps.push(new PowerUp(a.x, a.y, type));
         }
       }
@@ -448,6 +476,10 @@ function update(dt) {
         p.dead = true;
         if (p.type === 'speed') ship.speedTimer = 5;
         if (p.type === 'triple') ship.tripleShotTimer = 5;
+        if (p.type === 'shield') {
+          ship.shieldActive = true;
+          ship.shieldEnergy = 100;
+        }
       }
     }
   }
@@ -456,8 +488,16 @@ function update(dt) {
   if (ship.invincible <= 0) {
     for (const a of asteroids) {
       if (dist(ship, a) < ship.radius + a.radius * 0.82) {
-        killShip();
-        break;
+        if (ship.shieldActive) {
+          a.dead = true;
+          ship.shieldActive = false;
+          ship.shieldEnergy = 0;
+          explode(a.x, a.y, a.size * 5);
+          newAsteroids.push(...a.split());
+        } else {
+          killShip();
+          break;
+        }
       }
     }
   }
@@ -503,15 +543,23 @@ function drawHUD() {
   for (let i = 0; i < lives; i++)
     drawLifeIcon(W - 16 - i * 22, 18);
 
+  let hudY = 48;
   if (ship && ship.speedTimer > 0) {
     ctx.fillStyle = '#00ffff';
     ctx.textAlign = 'left';
-    ctx.fillText(`VELOCIDAD  ${ship.speedTimer.toFixed(1)}s`, 14, 48);
+    ctx.fillText(`VELOCIDAD  ${ship.speedTimer.toFixed(1)}s`, 14, hudY);
+    hudY += 18;
   }
   if (ship && ship.tripleShotTimer > 0) {
     ctx.fillStyle = '#ff00ff';
     ctx.textAlign = 'left';
-    ctx.fillText(`TRIPLE SHOT  ${ship.tripleShotTimer.toFixed(1)}s`, 14, 66);
+    ctx.fillText(`TRIPLE SHOT  ${ship.tripleShotTimer.toFixed(1)}s`, 14, hudY);
+    hudY += 18;
+  }
+  if (ship && ship.shieldActive) {
+    ctx.fillStyle = '#38bdf8';
+    ctx.textAlign = 'left';
+    ctx.fillText(`ESCUDO  ${Math.floor(ship.shieldEnergy)}%`, 14, hudY);
   }
 }
 
