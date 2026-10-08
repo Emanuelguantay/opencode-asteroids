@@ -9,9 +9,28 @@
     body {
       background: #000;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
       height: 100vh;
+      color: #fff;
+      font-family: monospace;
+    }
+    .ui-skins {
+      margin-top: 10px;
+      display: flex;
+      gap: 10px;
+    }
+    .ui-skins button {
+      background: #222;
+      color: #fff;
+      border: 1px solid #444;
+      padding: 5px 10px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .ui-skins button:hover {
+      background: #333;
     }
     canvas {
       display: block;
@@ -21,6 +40,12 @@
 </head>
 <body>
   <canvas id="canvas" width="800" height="600"></canvas>
+  <div class="ui-skins">
+    <span>SKINS:</span>
+    <button onclick="setSkin('classic')">CLASSIC</button>
+    <button onclick="setSkin('interceptor')">INTERCEPTOR</button>
+    <button onclick="setSkin('stealth')">STEALTH</button>
+  </div>
   <script src="game.js"></script>
 </body>
 </html>

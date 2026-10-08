@@ -29,7 +29,48 @@ const dist  = (a, b)   => Math.hypot(a.x - b.x, a.y - b.y);
 const rand  = (min, max) => min + Math.random() * (max - min);
 const randInt = (min, max) => Math.floor(rand(min, max + 1));
 
-// ── Bullet ────────────────────────────────────────────────────────────────────
+// ── Skins ─────────────────────────────────────────────────────────────────────
+const SHIP_SKINS = {
+  classic: {
+    color: '#fff',
+    draw: (ctx) => {
+      ctx.beginPath();
+      ctx.moveTo( 20,  0);
+      ctx.lineTo(-12, -9);
+      ctx.lineTo( -7,  0);
+      ctx.lineTo(-12,  9);
+      ctx.closePath();
+      ctx.stroke();
+    }
+  },
+  interceptor: {
+    color: '#ff0055',
+    draw: (ctx) => {
+      ctx.beginPath();
+      ctx.moveTo( 25,  0);
+      ctx.lineTo(-10, -12);
+      ctx.lineTo( -2,  0);
+      ctx.lineTo(-10,  12);
+      ctx.closePath();
+      ctx.stroke();
+    }
+  },
+  stealth: {
+    color: '#55ff55',
+    draw: (ctx) => {
+      ctx.beginPath();
+      ctx.moveTo( 15,  0);
+      ctx.lineTo(-15, -6);
+      ctx.lineTo(-10,  0);
+      ctx.lineTo(-15,  6);
+      ctx.closePath();
+      ctx.stroke();
+    }
+  }
+};
+
+let currentSkin = 'classic';
+
 class Bullet {
   constructor(x, y, angle) {
     this.x = x;
@@ -179,7 +220,8 @@ class Ship {
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(this.angle);
-    ctx.strokeStyle = '#fff';
+    const skin = SHIP_SKINS[currentSkin];
+    ctx.strokeStyle = skin.color;
     ctx.lineWidth   = 1.5;
     ctx.lineJoin    = 'round';
 
@@ -192,14 +234,8 @@ class Ship {
       ctx.stroke();
     }
 
-    // Silueta clásica: triángulo con muesca trasera
-    ctx.beginPath();
-    ctx.moveTo( 20,  0);   // nariz
-    ctx.lineTo(-12, -9);   // ala izquierda
-    ctx.lineTo( -7,  0);   // muesca trasera
-    ctx.lineTo(-12,  9);   // ala derecha
-    ctx.closePath();
-    ctx.stroke();
+    // Dibujar silueta según skin
+    skin.draw(ctx);
 
     // Llama del propulsor
     if (this.thrusting && Math.random() > 0.35) {
@@ -423,7 +459,7 @@ function drawLifeIcon(x, y) {
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(-Math.PI / 2);
-  ctx.strokeStyle = '#fff';
+  ctx.strokeStyle = SHIP_SKINS[currentSkin].color;
   ctx.lineWidth   = 1.2;
   ctx.lineJoin    = 'round';
   ctx.beginPath();
@@ -434,6 +470,12 @@ function drawLifeIcon(x, y) {
   ctx.closePath();
   ctx.stroke();
   ctx.restore();
+}
+
+function setSkin(skinId) {
+  if (SHIP_SKINS[skinId]) {
+    currentSkin = skinId;
+  }
 }
 
 function drawHUD() {
