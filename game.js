@@ -133,6 +133,7 @@ class Ship {
     this.invincible    = 3;
     this.shootCooldown = 0;
     this.speedTimer    = 0;
+    this.tripleShotTimer = 0;
     this.dead          = false;
   }
 
@@ -141,6 +142,7 @@ class Ship {
     if (this.invincible    > 0) this.invincible    -= dt;
     if (this.shootCooldown > 0) this.shootCooldown -= dt;
     if (this.speedTimer    > 0) this.speedTimer    -= dt;
+    if (this.tripleShotTimer > 0) this.tripleShotTimer -= dt;
 
     const ROT   = 3.5;   // rad/s
     const BASE_THRUST = 260;  // px/s²
@@ -168,6 +170,14 @@ class Ship {
     const NOSE = 21;
     const ox = this.x + Math.cos(this.angle) * NOSE;
     const oy = this.y + Math.sin(this.angle) * NOSE;
+
+    if (this.tripleShotTimer > 0) {
+      return [
+        new Bullet(ox, oy, this.angle - 0.15),
+        new Bullet(ox, oy, this.angle),
+        new Bullet(ox, oy, this.angle + 0.15)
+      ];
+    }
     return [new Bullet(ox, oy, this.angle)];
   }
 
@@ -280,7 +290,7 @@ class PowerUp {
     ctx.font = 'bold 11px monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('S', 0, 1);
+    ctx.fillText(this.type === 'speed' ? 'S' : 'T', 0, 1);
 
     ctx.restore();
   }
@@ -386,7 +396,8 @@ function update(dt) {
         explode(a.x, a.y, a.size * 5);
         newAsteroids.push(...a.split());
         if (Math.random() < 0.20) {
-          powerUps.push(new PowerUp(a.x, a.y, 'speed'));
+          const type = Math.random() < 0.5 ? 'speed' : 'triple';
+          powerUps.push(new PowerUp(a.x, a.y, type));
         }
       }
     }
@@ -399,7 +410,8 @@ function update(dt) {
     for (const p of powerUps) {
       if (!p.dead && dist(ship, p) < ship.radius + p.radius) {
         p.dead = true;
-        ship.speedTimer = 5;
+        if (p.type === 'speed') ship.speedTimer = 5;
+        if (p.type === 'triple') ship.tripleShotTimer = 5;
       }
     }
   }
@@ -453,6 +465,11 @@ function drawHUD() {
     ctx.fillStyle = '#00ffff';
     ctx.textAlign = 'left';
     ctx.fillText(`VELOCIDAD  ${ship.speedTimer.toFixed(1)}s`, 14, 48);
+  }
+  if (ship && ship.tripleShotTimer > 0) {
+    ctx.fillStyle = '#ff00ff';
+    ctx.textAlign = 'left';
+    ctx.fillText(`TRIPLE SHOT  ${ship.tripleShotTimer.toFixed(1)}s`, 14, 66);
   }
 }
 
