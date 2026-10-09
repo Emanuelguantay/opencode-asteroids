@@ -32,3 +32,4 @@ jobs:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         with:
           model: gemini-3.8-flash
+          github_token: ${{ secrets.GITHUB_TOKEN }}
