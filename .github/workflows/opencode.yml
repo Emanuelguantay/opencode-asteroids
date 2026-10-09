@@ -1,3 +1,4 @@
+
 name: opencode
 
 on:
@@ -14,20 +15,20 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       id-token: write
-    steps:
-       - name: Checkout repository
-         uses: actions/checkout@v6
-         with:
-           fetch-depth: 1
-           persist-credentials: false
+      contents: read
+      pull-requests: write
+      issues: write
 
-       - name: Run OpenCode
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Run OpenCode
         uses: anomalyco/opencode/github@latest
         env:
-          #ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         with:
-          model: google/gemini-3.8-flash 
-          #model: anthropic/claude-sonnet-4-20250514
-          # share: true
-          # github_token: xxxx
+          model: google/gemini-3.8-flash
