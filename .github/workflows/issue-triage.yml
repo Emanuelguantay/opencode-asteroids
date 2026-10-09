@@ -17,66 +17,17 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Fetch issue
+      - name: Fetch issue data
         uses: actions/github-script@v7
+        id: get-issue
         with:
           script: |
             const issue = context.payload.issue;
-            const fs = require('fs');
-            fs.writeFileSync('/tmp/issue.json', JSON.stringify({
+            return {
               number: issue.number,
               title: issue.title,
               body: issue.body || ''
-            }, null, 2));
-
-      - name: Build prompt
-        shell: bash
-        run: |
-          cat > /tmp/build_prompt.py <<'PY'
-          import json
-          with open("/tmp/issue.json") as f:
-              issue = json.load(f)
-          title = issue.get("title", "")
-          body = issue.get("body", "") or ""
-          template = """Eres el agente de triage del repositorio "03-asteroids", un clon de Asteroids en JavaScript vanilla (sin dependencias, sin bundler, sin build). Lee los archivos AGENTS.md y game.js del repositorio actual para entender el proyecto antes de clasificar.
-
-          Se acaba de abrir un issue. Tu tarea es clasificarlo, reformatear su cuerpo y escribir el resultado EXACTAMENTE en un archivo JSON en la ruta `/tmp/triage_result.json`.
-
-          Título del issue:
-          __TITLE__
-
-          Cuerpo actual del issue:
-          -----
-          __BODY__
-          -----
-
-          El archivo JSON en `/tmp/triage_result.json` debe tener esta estructura exacta:
-
-          {
-            "labels": ["<etiqueta1>"],
-            "body": "<nuevo cuerpo en markdown, en español>"
-          }
-
-          REGLAS PARA "labels":
-          - Elige entre 1 y 2 etiquetas de este conjunto permitido: bug, enhancement, question, documentation, needs-triage.
-          - bug: error, fallo o comportamiento incorrecto.
-          - enhancement: mejora o nueva funcionalidad.
-          - question: duda o pedido de ayuda.
-          - documentation: problema o mejora de la documentación.
-          - needs-triage: ambiguo o no clasificable.
-
-          REGLAS PARA "body" (markdown, en español):
-          1. "## Resumen": resumen conciso del problema (1-3 oraciones).
-          2. "## Información relevante": indica área probable del código, severidad (baja/media/alta) y pasos de reproducción.
-          3. "## Descripción": versión reformateada y normalizada del contenido del usuario.
-          4. Separador: ---
-          5. "_Texto original del issue_" seguido del texto original citado línea por línea con "> ".
-          """
-          prompt = template.replace("__TITLE__", title).replace("__BODY__", body)
-          with open("/tmp/prompt.txt", "w") as f:
-              f.write(prompt)
-          PY
-          python3 /tmp/build_prompt.py
+            };
 
       - name: Run opencode
         uses: anomalyco/opencode/github@latest
@@ -86,14 +37,47 @@ jobs:
         with:
           model: google/gemini-3.5-flash-lite
           use_github_token: true
-          prompt_file: /tmp/prompt.txt
+          prompt: |
+            Eres el agente de triage del repositorio "03-asteroids", un clon de Asteroids en JavaScript vanilla (sin dependencias, sin bundler, sin build). Lee los archivos AGENTS.md y game.js del repositorio actual para entender el proyecto antes de clasificar.
+
+            Se acaba de abrir un issue. Tu tarea es clasificarlo, reformatear su cuerpo y escribir el resultado EXACTAMENTE en un archivo JSON en la ruta `/tmp/triage_result.json`.
+
+            Título del issue:
+            ${{ fromJson(steps.get-issue.outputs.result).title }}
+
+            Cuerpo actual del issue:
+            -----
+            ${{ fromJson(steps.get-issue.outputs.result).body }}
+            -----
+
+            El archivo JSON en `/tmp/triage_result.json` debe tener esta estructura exacta:
+
+            {
+              "labels": ["<etiqueta1>"],
+              "body": "<nuevo cuerpo en markdown, en español>"
+            }
+
+            REGLAS PARA "labels":
+            - Elige entre 1 y 2 etiquetas de este conjunto permitido: bug, enhancement, question, documentation, needs-triage.
+            - bug: error, fallo o comportamiento incorrecto.
+            - enhancement: mejora o nueva funcionalidad.
+            - question: duda o pedido de ayuda.
+            - documentation: problema o mejora de la documentación.
+            - needs-triage: ambiguo o no clasificable.
+
+            REGLAS PARA "body" (markdown, en español):
+            1. "## Resumen": resumen conciso del problema (1-3 oraciones).
+            2. "## Información relevante": indica área probable del código, severidad (baja/media/alta) y pasos de reproducción.
+            3. "## Descripción": versión reformateada y normalizada del contenido del usuario.
+            4. Separador: ---
+            5. "_Texto original del issue_" seguido del texto original citado línea por línea con "> ".
 
       - name: Parse and apply result
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
-            const issueNumber = context.payload.issue.number;
+            const issueNumber = ${{ fromJson(steps.get-issue.outputs.result).number }};
             const owner = context.repo.owner;
             const repo = context.repo.repo;
 
