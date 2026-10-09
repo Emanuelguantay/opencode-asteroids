@@ -31,4 +31,4 @@ jobs:
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         with:
-          model: google/gemini-3.8-flash
+          model: gemini-3.8-flash
