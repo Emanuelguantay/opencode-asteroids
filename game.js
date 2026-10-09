@@ -66,6 +66,18 @@ const SHIP_SKINS = {
       ctx.closePath();
       ctx.stroke();
     }
+  },
+  purple: {
+    color: '#b026ff',
+    draw: (ctx) => {
+      ctx.beginPath();
+      ctx.moveTo( 40,  0);
+      ctx.lineTo(-24, -18);
+      ctx.lineTo(-14,  0);
+      ctx.lineTo(-24,  18);
+      ctx.closePath();
+      ctx.stroke();
+    }
   }
 };
 
@@ -169,7 +181,7 @@ class Ship {
     this.angle  = -Math.PI / 2;
     this.vx     = 0;
     this.vy     = 0;
-    this.radius = 12;
+    this.radius = currentSkin === 'purple' ? 24 : 12;
     this.thrusting     = false;
     this.invincible    = 3;
     this.shootCooldown = 0;
@@ -218,7 +230,7 @@ class Ship {
   tryShoot() {
     if (this.shootCooldown > 0 || this.dead) return [];
     this.shootCooldown = 0.2;
-    const NOSE = 21;
+    const NOSE = currentSkin === 'purple' ? 42 : 21;
     const ox = this.x + Math.cos(this.angle) * NOSE;
     const oy = this.y + Math.sin(this.angle) * NOSE;
 
@@ -248,7 +260,7 @@ class Ship {
     // Aura de velocidad
     if (this.speedTimer > 0) {
       ctx.beginPath();
-      ctx.arc(0, 0, 18, 0, Math.PI * 2);
+      ctx.arc(0, 0, currentSkin === 'purple' ? 36 : 18, 0, Math.PI * 2);
       ctx.strokeStyle = `rgba(0, 255, 255, ${0.4 + 0.3 * Math.sin(Date.now() / 100)})`;
       ctx.lineWidth = 1;
       ctx.stroke();
@@ -269,9 +281,15 @@ class Ship {
     // Llama del propulsor
     if (this.thrusting && Math.random() > 0.35) {
       ctx.beginPath();
-      ctx.moveTo(-8, -4);
-      ctx.lineTo(-8 - rand(6, 14), 0);
-      ctx.lineTo(-8,  4);
+      if (currentSkin === 'purple') {
+        ctx.moveTo(-16, -8);
+        ctx.lineTo(-16 - rand(12, 28), 0);
+        ctx.lineTo(-16,  8);
+      } else {
+        ctx.moveTo(-8, -4);
+        ctx.lineTo(-8 - rand(6, 14), 0);
+        ctx.lineTo(-8,  4);
+      }
       ctx.strokeStyle = this.speedTimer > 0 ? 'rgba(0, 255, 255, 0.9)' : 'rgba(255, 130, 0, 0.85)';
       ctx.stroke();
     }
@@ -455,7 +473,8 @@ function update(dt) {
       if (!a.dead && !b.dead && dist(b, a) < a.radius) {
         b.dead = true;
         a.dead = true;
-        score += POINTS[a.size];
+        const multiplier = currentSkin === 'purple' ? 2 : 1;
+        score += POINTS[a.size] * multiplier;
         explode(a.x, a.y, a.size * 5);
         newAsteroids.push(...a.split());
         if (Math.random() < 0.20) {
@@ -511,22 +530,21 @@ function drawLifeIcon(x, y) {
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(-Math.PI / 2);
-  ctx.strokeStyle = SHIP_SKINS[currentSkin].color;
+  const skin = SHIP_SKINS[currentSkin];
+  ctx.strokeStyle = skin.color;
   ctx.lineWidth   = 1.2;
   ctx.lineJoin    = 'round';
-  ctx.beginPath();
-  ctx.moveTo( 9,  0);
-  ctx.lineTo(-6, -5);
-  ctx.lineTo(-3,  0);
-  ctx.lineTo(-6,  5);
-  ctx.closePath();
-  ctx.stroke();
+  if (currentSkin === 'purple') {
+    ctx.scale(0.5, 0.5);
+  }
+  skin.draw(ctx);
   ctx.restore();
 }
 
 function setSkin(skinId) {
   if (SHIP_SKINS[skinId]) {
     currentSkin = skinId;
+    if (ship) ship.reset();
   }
 }
 
